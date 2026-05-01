@@ -12,21 +12,18 @@ class ACPController(QtCore.QObject):
     Resides on the main thread.
     """
 
+    status_changed = QtCore.Signal(str, str)
+
     def __init__(self, chat_view, parent=None):
         super().__init__(parent)
         self.chat_view = chat_view
 
         self.client_thread = ACPClientThread()
         self.client_thread.message_received.connect(self.chat_view.append_message)
-        self.client_thread.error_occurred.connect(
-            lambda msg: self.chat_view.append_message("System", f"Error: {msg}")
-        )
-        self.client_thread.connected.connect(
-            lambda: self.chat_view.append_message("System", "Connected to Agent.")
-        )
-        self.client_thread.disconnected.connect(
-            lambda: self.chat_view.append_message("System", "Disconnected from Agent.")
-        )
+        self.client_thread.error_occurred.connect(self._on_error_occurred)
+        self.client_thread.connected.connect(self._on_connected)
+        self.client_thread.disconnected.connect(self._on_disconnected)
+        self.client_thread.processing_finished.connect(self._on_processing_finished)
 
         self.client_thread.request_execute_script.connect(self.handle_execute_script)
         self.client_thread.request_read_document.connect(self.handle_read_document)
@@ -52,6 +49,9 @@ class ACPController(QtCore.QObject):
 
     @QtCore.Slot(str)
     def handle_send_message(self, text):
+        self.chat_view.set_processing()
+        self.status_changed.emit("Agent is processing...", "#1a73e8")
+
         if self._is_first_prompt:
             system_instruction = (
                 "You are an ACP agent connected to FreeCAD. "
@@ -64,6 +64,24 @@ class ACPController(QtCore.QObject):
             formatted_text = text
 
         self.client_thread.send_prompt(formatted_text)
+
+    def _on_connected(self):
+        self.chat_view.append_message("System", "Connected to Agent.")
+        self.chat_view.set_ready()
+        self.status_changed.emit("Connected", "#34a853")
+
+    def _on_disconnected(self):
+        self.chat_view.append_message("System", "Disconnected from Agent.")
+        self.status_changed.emit("Disconnected", "#999")
+
+    def _on_error_occurred(self, msg):
+        self.chat_view.append_message("System", f"Error: {msg}")
+        self.chat_view.set_ready()
+        self.status_changed.emit("Error", "#ea4335")
+
+    def _on_processing_finished(self):
+        self.chat_view.set_ready()
+        self.status_changed.emit("Connected", "#34a853")
 
     @QtCore.Slot(str, str)
     def handle_execute_script(self, req_id, script):

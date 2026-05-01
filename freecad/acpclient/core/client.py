@@ -111,6 +111,8 @@ class ACPClientThread(QtCore.QThread):
     error_occurred = QtCore.Signal(str)
     connected = QtCore.Signal()
     disconnected = QtCore.Signal()
+    processing_started = QtCore.Signal()
+    processing_finished = QtCore.Signal()
 
     request_execute_script = QtCore.Signal(str, str)
     request_read_document = QtCore.Signal(str)
@@ -179,7 +181,9 @@ class ACPClientThread(QtCore.QThread):
     async def _async_send_prompt(self, text):
         if not self.conn or not self.session:
             self.error_occurred.emit("Not connected to any agent.")
+            self.processing_finished.emit()
             return
+        self.processing_started.emit()
         try:
             await self.conn.prompt(
                 session_id=self.session.session_id,
@@ -187,6 +191,8 @@ class ACPClientThread(QtCore.QThread):
             )
         except Exception as e:
             self.error_occurred.emit(f"Error: {e}")
+        finally:
+            self.processing_finished.emit()
 
     def connect_to_agent(self, command_path):
         """Spawns a local agent process via stdio."""

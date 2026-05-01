@@ -4,6 +4,43 @@ import FreeCAD
 import FreeCADGui
 from PySide6 import QtWidgets
 
+_PARAM_GROUP: str = "User parameter:BaseApp/ACP"
+_MAX_RECENT: int = 5
+
+
+def _load_last_command() -> str:
+    """Load the last-used agent command from FreeCAD params."""
+    try:
+        pg = FreeCAD.ParamGet(_PARAM_GROUP)
+        default: str = pg.GetString("last_command", "gemini --experimental-acp")
+        return default
+    except Exception:
+        return "gemini --experimental-acp"
+
+
+def _save_last_command(command_path: str) -> None:
+    """Save the agent command and maintain a recent-connections list."""
+    try:
+        pg = FreeCAD.ParamGet(_PARAM_GROUP)
+        pg.SetString("last_command", command_path)
+
+        # Update recent connections list (deduplicated, up to _MAX_RECENT)
+        recent: list[str] = []
+        for i in range(_MAX_RECENT):
+            entry: str = pg.GetString(f"recent_{i}", "")
+            if entry:
+                recent.append(entry)
+
+        if command_path in recent:
+            recent.remove(command_path)
+        recent.insert(0, command_path)
+        recent = recent[:_MAX_RECENT]
+
+        for i, entry in enumerate(recent):
+            pg.SetString(f"recent_{i}", entry)
+    except Exception:
+        pass
+
 
 class ConnectCommand:
     """Command to connect to an ACP agent."""
@@ -26,15 +63,17 @@ class ConnectCommand:
             dock.show()
 
         mw = FreeCADGui.getMainWindow()
+        default_cmd: str = _load_last_command()
         command_path, ok = QtWidgets.QInputDialog.getText(
             mw,
             "Connect to Agent",
             "Enter agent command (e.g. 'gemini --experimental-acp'):",
             QtWidgets.QLineEdit.Normal,
-            "gemini --experimental-acp",
+            default_cmd,
         )
 
         if ok and command_path:
+            _save_last_command(command_path)
             FreeCAD.Console.PrintMessage(f"ACP: Connecting via '{command_path}'...\n")
             dock.controller.connect_to_agent(command_path)
 

@@ -2,16 +2,15 @@ import contextlib
 import io
 import json
 import traceback
+from collections.abc import Callable
+from typing import Any
 
 import FreeCAD
 import FreeCADGui
 
 
-def read_document_state():
-    """
-    Returns a dictionary representing the current document state.
-    Executes on the main thread.
-    """
+def read_document_state() -> dict[str, Any]:
+    """Returns a dictionary representing the current document state."""
     try:
         doc = FreeCAD.ActiveDocument
         if not doc:
@@ -23,7 +22,7 @@ def read_document_state():
         state = {
             "name": doc.Name,
             "label": doc.Label,
-            "objects": []
+            "objects": [],
         }
 
         for obj in doc.Objects:
@@ -31,7 +30,7 @@ def read_document_state():
                 "name": obj.Name,
                 "label": obj.Label,
                 "type": obj.TypeId,
-                "selected": obj.Name in sel_names
+                "selected": obj.Name in sel_names,
             }
 
             if hasattr(obj, "Visibility"):
@@ -54,7 +53,7 @@ def read_document_state():
             props = {}
             if hasattr(obj, "PropertiesList"):
                 for prop_name in obj.PropertiesList:
-                    if prop_name in ["Length", "Width", "Height", "Radius", "Angle"]:
+                    if prop_name in ("Length", "Width", "Height", "Radius", "Angle"):
                         props[prop_name] = getattr(obj, prop_name)
             if props:
                 obj_data["parameters"] = props
@@ -65,9 +64,10 @@ def read_document_state():
     except Exception as e:
         return {"error": str(e)}
 
-def execute_python_script_sync(script):
-    """
-    Executes a Python script in the FreeCAD context synchronously and captures output.
+
+def execute_python_script_sync(script: str) -> str:
+    """Executes a Python script in the FreeCAD context synchronously and captures output.
+
     Must be called from the main thread.
     """
     capture_stdout = io.StringIO()
@@ -85,8 +85,166 @@ def execute_python_script_sync(script):
 
     return output
 
-# Registry of tools that can be exposed to the ACP agent
-TOOLS_REGISTRY = {
+
+def create_primitive(obj_type: str, params: dict[str, Any]) -> dict[str, Any]:
+    """Create a FreeCAD primitive shape in the active document."""
+    doc = FreeCAD.ActiveDocument
+    if not doc:
+        return {"error": "No active document"}
+
+    import Part
+
+    doc.openTransaction("ACP: Create Primitive")
+    try:
+        if obj_type == "Box":
+            shape = Part.makeBox(
+                params.get("length", 10),
+                params.get("width", 10),
+                params.get("height", 10),
+            )
+        elif obj_type == "Cylinder":
+            shape = Part.makeCylinder(
+                params.get("radius", 5),
+                params.get("height", 10),
+            )
+        elif obj_type == "Sphere":
+            shape = Part.makeSphere(params.get("radius", 5))
+        elif obj_type == "Cone":
+            shape = Part.makeCone(
+                params.get("radius1", 5),
+                params.get("radius2", 2),
+                params.get("height", 10),
+            )
+        elif obj_type == "Torus":
+            shape = Part.makeTorus(
+                params.get("radius1", 10),
+                params.get("radius2", 2),
+            )
+        else:
+            return {"error": f"Unknown primitive type: {obj_type}"}
+
+        name = params.get("name", obj_type)
+        obj = doc.addObject("Part::Feature", name)
+        obj.Shape = shape
+
+        if "placement" in params:
+            pl = params["placement"]
+            pos = FreeCAD.Vector(
+                pl.get("x", 0), pl.get("y", 0), pl.get("z", 0)
+            )
+            rot = FreeCAD.Rotation(
+                FreeCAD.Vector(
+                    pl.get("ax", 0), pl.get("ay", 0), pl.get("az", 1)
+                ),
+                pl.get("angle", 0),
+            )
+            obj.Placement = FreeCAD.Placement(pos, rot)
+
+        doc.recompute()
+        doc.commitTransaction()
+        return {"result": f"Created {obj_type} '{name}'. Call recompute if further changes are needed."}
+    except Exception as e:
+        doc.abortTransaction()
+        return {"error": str(e)}
+
+
+def delete_object(name: str) -> dict[str, Any]:
+    """Remove an object from the active document."""
+    doc = FreeCAD.ActiveDocument
+    if not doc:
+        return {"error": "No active document"}
+
+    try:
+        obj = doc.getObject(name)
+        if obj is None:
+            return {"error": f"Object '{name}' not found"}
+        doc.openTransaction("ACP: Delete Object")
+        doc.removeObject(name)
+        doc.recompute()
+        doc.commitTransaction()
+        return {"result": f"Deleted object '{name}'"}
+    except Exception as e:
+        with contextlib.suppress(Exception):
+            doc.abortTransaction()
+        return {"error": str(e)}
+
+
+def get_selection() -> dict[str, Any]:
+    """Return information about the current user selection."""
+    try:
+        sel = FreeCADGui.Selection.getSelection()
+        if not sel:
+            return {"result": "No objects selected.", "count": 0, "objects": []}
+
+        objects = []
+        for obj in sel:
+            obj_info = {
+                "name": obj.Name,
+                "label": obj.Label,
+                "type": obj.TypeId,
+            }
+            if hasattr(obj, "Placement") and obj.Placement:
+                pl = obj.Placement
+                obj_info["placement"] = {
+                    "base": {"x": pl.Base.x, "y": pl.Base.y, "z": pl.Base.z},
+                }
+            objects.append(obj_info)
+
+        return {"result": f"{len(objects)} object(s) selected.", "count": len(objects), "objects": objects}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def export_file(filepath: str, fmt: str = "") -> dict[str, Any]:
+    """Export the active document to a file."""
+    doc = FreeCAD.ActiveDocument
+    if not doc:
+        return {"error": "No active document"}
+
+    try:
+        import Mesh
+        import Part
+
+        if fmt.lower() in ("stl", "stl ascii", ".stl"):
+            objs = []
+            for obj in doc.Objects:
+                if hasattr(obj, "Shape") and obj.Shape:
+                    objs.append(obj)
+            if not objs:
+                return {"error": "No shape objects to export"}
+            Mesh.export(objs, filepath)
+        elif fmt.lower() in ("step", "stp", ".step", ".stp"):
+            Part.export(doc.Objects, filepath)
+        else:
+            return {"error": f"Unsupported format: {fmt}. Use 'stl' or 'step'."}
+
+        return {"result": f"Exported to {filepath}"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# --- Tool dispatch map ---
+
+TOOL_DISPATCH: dict[str, Callable[..., dict[str, Any]]] = {
+    "read_document_state": read_document_state,
+    "create_primitive": create_primitive,
+    "delete_object": delete_object,
+    "get_selection": get_selection,
+    "export_file": export_file,
+}
+
+
+def run_tool(method: str, params: dict[str, Any]) -> dict[str, Any]:
+    """Route a tool method name and params to the correct handler."""
+    func = TOOL_DISPATCH.get(method)
+    if func is None:
+        return {"error": f"Unknown tool: {method}"}
+    return func(**params)
+
+
+# --- Tool registry for agent context injection ---
+
+TOOLS_REGISTRY: dict[str, dict[str, Any]] = {
     "read_document_state": {
         "description": (
             "Get information about the current FreeCAD document, its objects, "
@@ -103,14 +261,64 @@ TOOLS_REGISTRY = {
         "parameters": {
             "type": "object",
             "properties": {
-                "script": {"type": "string", "description": "The Python code to execute."}
+                "script": {"type": "string", "description": "The Python code to execute."},
             },
-            "required": ["script"]
-        }
-    }
+            "required": ["script"],
+        },
+    },
+    "create_primitive": {
+        "description": (
+            "Create a primitive 3D shape in the active document. "
+            "Supported types: Box, Cylinder, Sphere, Cone, Torus."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "obj_type": {
+                    "type": "string",
+                    "description": "Primitive type: Box, Cylinder, Sphere, Cone, or Torus.",
+                },
+                "params": {
+                    "type": "object",
+                    "description": (
+                        "Shape parameters. Box: length, width, height. "
+                        "Cylinder: radius, height. Sphere: radius. "
+                        "Cone: radius1, radius2, height. Torus: radius1, radius2. "
+                        "All also accept 'name' and 'placement'."
+                    ),
+                },
+            },
+            "required": ["obj_type", "params"],
+        },
+    },
+    "delete_object": {
+        "description": "Remove an object from the active document by name.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Name of the object to delete."},
+            },
+            "required": ["name"],
+        },
+    },
+    "get_selection": {
+        "description": "Get information about the currently selected objects.",
+    },
+    "export_file": {
+        "description": "Export the active document to a file (STL or STEP format).",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filepath": {"type": "string", "description": "Full path to the output file."},
+                "fmt": {"type": "string", "description": "Format: 'stl' or 'step'."},
+            },
+            "required": ["filepath", "fmt"],
+        },
+    },
 }
 
-def get_tools_schema_markdown():
+
+def get_tools_schema_markdown() -> str:
     """Returns the tools registry as a Markdown string to inject into the agent context."""
     md = "## Available FreeCAD Tools\\n\\n"
     for name, tool in TOOLS_REGISTRY.items():

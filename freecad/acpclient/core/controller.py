@@ -1,3 +1,5 @@
+import json
+
 from PySide6 import QtCore, QtWidgets
 
 from freecad.acpclient.core import tools
@@ -29,6 +31,7 @@ class ACPController(QtCore.QObject):
         self.client_thread.request_execute_script.connect(self.handle_execute_script)
         self.client_thread.request_read_document.connect(self.handle_read_document)
         self.client_thread.request_permission_signal.connect(self.handle_permission)
+        self.client_thread.request_run_tool.connect(self.handle_run_tool)
 
         self.chat_view.send_message.connect(self.handle_send_message)
         self._is_first_prompt = True
@@ -71,6 +74,12 @@ class ACPController(QtCore.QObject):
     def handle_read_document(self, req_id):
         result = tools.read_document_state()
         self.client_thread.resolve_read_document(req_id, result)
+
+    @QtCore.Slot(str, str, str)
+    def handle_run_tool(self, req_id, method, params_json):
+        params = json.loads(params_json)
+        result = tools.run_tool(method, params)
+        self.client_thread.resolve_run_tool(req_id, json.dumps(result))
 
     @QtCore.Slot(str, str, str)
     def handle_permission(self, req_id, title, description):

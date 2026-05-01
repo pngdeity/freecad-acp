@@ -74,10 +74,13 @@ class FreeCADACPClient(Client):
 
     async def ext_method(self, method, params):
         """Handle custom FreeCAD tools via extension methods."""
+        import json
+
         if method == "read_document_state":
             result = await self.thread_bridge.run_on_main_thread(self.thread_bridge.request_read_document)
             return {"result": result}
-        elif method == "execute_python_script":
+
+        if method == "execute_python_script":
             script = params.get("script", "")
             title = "Python Execution Requested"
             description = f"The agent wants to execute the following Python script:\n\n{script}"
@@ -91,7 +94,14 @@ class FreeCADACPClient(Client):
             )
             return {"result": result}
 
-        raise RequestError.method_not_found(method)
+        # Generic tool dispatch for all other tools
+        result_json = await self.thread_bridge.run_on_main_thread(
+            self.thread_bridge.request_run_tool, method, json.dumps(params)
+        )
+        result = json.loads(result_json)
+        if "error" in result:
+            raise RequestError.method_not_found(method)
+        return result
 
 
 class ACPClientThread(QtCore.QThread):
@@ -105,6 +115,7 @@ class ACPClientThread(QtCore.QThread):
     request_execute_script = QtCore.Signal(str, str)
     request_read_document = QtCore.Signal(str)
     request_permission_signal = QtCore.Signal(str, str, str)
+    request_run_tool = QtCore.Signal(str, str, str)
 
     def __init__(self):
         super().__init__()
@@ -140,6 +151,12 @@ class ACPClientThread(QtCore.QThread):
         if req_id in self.pending_requests:
             fut = self.pending_requests.pop(req_id)
             self.loop.call_soon_threadsafe(fut.set_result, allowed)
+
+    @QtCore.Slot(str, str)
+    def resolve_run_tool(self, req_id, result_json):
+        if req_id in self.pending_requests:
+            fut = self.pending_requests.pop(req_id)
+            self.loop.call_soon_threadsafe(fut.set_result, result_json)
 
     def run(self):
         self.loop = asyncio.new_event_loop()

@@ -93,6 +93,9 @@ class ACPChatView(QtWidgets.QWidget):
         self.loading_label.setAccessibleName("Agent Status")
         self.layout.addWidget(self.loading_label)
 
+        self._streaming: bool = False
+        self._streaming_text: str = ""
+
         self._apply_theme()
 
     def _apply_theme(self) -> None:
@@ -123,14 +126,37 @@ class ACPChatView(QtWidgets.QWidget):
     def append_message(self, sender: str, text: str = "") -> None:
         """Append a message to the chat history.
 
+        For agent messages, the first chunk appends a new message block
+        and subsequent chunks mutate that block in-place (streaming).
+
         Args:
             sender: The display name of the message sender.
             text: The message content (Markdown supported).
         """
         if not text:
             return
-        html: str = self._format_message(sender, text)
-        self.history.append(html)
+        if sender == "Agent" and self._streaming:
+            self._streaming_text += text
+            html: str = self._format_message("Agent", self._streaming_text)
+            self._replace_last_block(html)
+        else:
+            block_html: str = self._format_message(sender, text)
+            self.history.append(block_html)
+            if sender == "Agent":
+                self._streaming_text = text
+                self._streaming = True
+
+    def _replace_last_block(self, html: str) -> None:
+        """Replace the content of the last text block in the document with *html*."""
+        cursor: QtGui.QTextCursor = self.history.textCursor()
+        cursor.movePosition(QtGui.QTextCursor.End)
+        cursor.movePosition(QtGui.QTextCursor.StartOfBlock, QtGui.QTextCursor.KeepAnchor)
+        cursor.removeSelectedText()
+        cursor.insertHtml(html)
+        # Auto-scroll to the bottom so streaming content stays visible
+        scrollbar: QtWidgets.QScrollBar | None = self.history.verticalScrollBar()
+        if scrollbar is not None:
+            scrollbar.setValue(scrollbar.maximum())
 
     def _format_message(self, sender: str, text: str) -> str:
         """Convert raw text/markdown to HTML for display in QTextBrowser."""
@@ -149,6 +175,7 @@ class ACPChatView(QtWidgets.QWidget):
     @QtCore.Slot()
     def set_ready(self) -> None:
         """Re-enable send controls and hide stop button once processing finishes."""
+        self._streaming = False
         self.input_field.setEnabled(True)
         self.send_button.setVisible(True)
         self.stop_button.setVisible(False)

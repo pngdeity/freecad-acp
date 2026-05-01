@@ -43,22 +43,17 @@ All items below are unimplemented as of 2026-04-30. Each includes the current st
   - `commands.py:14,34,48,68` — menu/toolbar labels and dialog text
 - **Scope:** Audit and wrap all user-visible strings (estimated 30-40 strings). Create a translation template. No runtime translation loading until translators contribute.
 
-### 3. Remote agent support
-- **Goal:** HTTP/WebSocket transport in addition to stdio.
-- **Current state:** `client.py:236` uses only `spawn_agent_process(client, cmd, *cmd_args)` for local subprocess spawning. `commands.py:29-39` only prompts for a command path, not a URL. Zero imports of `aiohttp`, `websockets`, `httpx`, or any HTTP/WebSocket library.
-- **Scope:** Add a transport abstraction layer. Support URL-based connection in the connect dialog. Handle remote `ClientCapabilities` negotiation. May require `aiohttp` or `httpx` dependency.
-
-### 4. Session persistence
+### 3. Session persistence
 - **Goal:** Remember last agent command and connection history in FreeCAD params.
 - **Current state:** Zero calls to `FreeCAD.ParamGet`, `App.ParamGet`, or any parameter API anywhere in the codebase. The connect dialog at `commands.py:29` uses a hardcoded default `"gemini --experimental-acp"` with no recall.
 - **Scope:** Integrate with `FreeCAD.ParamGet("User parameter:BaseApp/ACP")`. Store last-used command path and a list of recent connections. Load on startup.
 
-### 5. Architectural refactor (per `docs/refactor.md`)
+### 4. Architectural refactor (per `docs/refactor.md`)
 - **Goal:** Four-phase remediation of Separation of Concerns, security, and stability issues.
 - **Phase 1 — Unified Tool Registry:** Replace `TOOL_DISPATCH` (`tools.py:283-289`) and `TOOLS_REGISTRY` (`tools.py:318-388`) with a single `ToolDefinition` dataclass. No `@dataclass` usage exists in the codebase today. Migrate `ext_method` (`client.py:90-121`) from if/elif chains to generic dispatch driven by `requires_permission`. ~70 lines of nested dict must be converted.
 - **Phase 2 — Agent Session Manager:** Extract prompt formatting and `_is_first_prompt` (`controller.py:38,64-70`) into `core/session.py`. `core/session.py` does not exist yet. Define a `SessionManager` class API and wire it into `ACPController`.
 - **Phase 3 — Hardened Thread Bridge:** Add `asyncio.wait_for` timeout to `run_on_main_thread` (`client.py:150-157`). Currently a bare `await fut` at `client.py:153` with no timeout. Must define timeout behavior (cancel future? return error? clean up `pending_requests`?).
-- **Phase 4 — Hardened Python Sandbox:** Restrict `__builtins__` in the `exec()` call at `tools.py:98`. Currently inherits full builtins. Whitelist safe operations (`len`, `range`, `dict`, `list`, `math` functions) and block `__import__`, `open`, `eval`, `exec`, `compile`, `input`, `breakpoint`. Note residual risk: already-imported modules in scope (`FreeCAD`, `Part`, `Mesh`) remain accessible.
+- [x] **Phase 4 — Hardened Python Sandbox:** Restrict `__builtins__` in the `exec()` call at `tools.py:98`. `SAFE_BUILTINS` dict added at `tools.py:79` with ~57 safe builtins (types, math, exceptions) in place of full builtins. `__import__`, `open`, `eval`, `exec`, `compile`, `input`, `breakpoint` are blocked. Note residual risk: already-imported modules in scope (`FreeCAD`, `Part`, `Mesh`) remain accessible.
 - **Review gaps identified in `docs/refactor.md:86-98`:** (1) post-refactor `ext_method` sketch needed, (2) timeout error path undefined, (3) `read_document_state` bypass treatment ambiguous, (4) sandbox residual risk acknowledged, (5) testing/migration plan missing, (6) `core/session.py` API undefined, (7) registry migration burden acknowledged.
 - **Scope of each phase:**
   - Phase 1: ~150 LOC new (`ToolDefinition` + migration), ~50 LOC changed (`ext_method` + `tools.py` callers)
@@ -66,22 +61,22 @@ All items below are unimplemented as of 2026-04-30. Each includes the current st
   - Phase 3: ~20 LOC changed (`client.py:150-157`)
   - Phase 4: ~15 LOC changed (`tools.py:96-98`)
 
-### 6. Agent mode/model switching
+### 5. Agent mode/model switching
 - **Goal:** Expose `set_session_mode` / `set_session_model` in UI.
 - **Current state:** Zero references to `set_session_mode`, `set_session_model`, or any `model`/`mode` API in the codebase. No such methods exist on `FreeCADACPClient` or in the ACP SDK session interface.
 - **Scope:** Requires upstream ACP SDK support. If available, add a dropdown or settings dialog in the UI to select mode/model before/during sessions.
 
-### 7. Cancel button
+### 6. Cancel button
 - **Goal:** Wire stop button to `conn.cancel(session_id)`.
 - **Current state:** No cancel/stop button exists in the UI — `chat_view.py:33` has only a "Send" button, no stop/cancel. No `conn.cancel()` call anywhere. The only "stop" mechanism is `_stop_event` / `loop.stop()` for full thread teardown (`client.py:196-201`).
 - **Scope:** Add a cancel button to `ACPChatView` (visible during processing). Wire it to `conn.cancel(session_id)` via the controller. Handle cancellation state (enable input, update status). Requires ACP SDK `conn.cancel()` support.
 
-### 8. Streaming token display
+### 7. Streaming token display
 - **Goal:** Render `session_update` text chunks incrementally (in-place mutation of last message).
 - **Current state:** `client.py:35-36` emits the full `.text` of each `AgentMessageChunk` as a discrete signal. `chat_view.py:56-66` appends each chunk as a separate HTML block to `QTextBrowser`. Tokens arrive as distinct appended `<div>` elements, not as in-place edits of a single streaming message.
 - **Scope:** Change `chat_view.py` to maintain a "streaming" message block. On first chunk, create a placeholder. On subsequent chunks, mutate the last block's content in-place. On `processing_finished`, finalize the block.
 
-### 9. Dark/light theme adaptation
+### 8. Dark/light theme adaptation
 - **Goal:** Adapt chat bubble colors to FreeCAD stylesheet.
 - **Current state:** All colors are hardcoded hex values that will not adapt to dark mode:
   - `dock_widget.py:27` — `"color: #999; ..."` (disconnected label)

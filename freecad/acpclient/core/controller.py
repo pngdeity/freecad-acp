@@ -35,6 +35,7 @@ class ACPController(QtCore.QObject):
         self.client_thread.request_run_tool.connect(self.handle_run_tool)
 
         self.chat_view.send_message.connect(self.handle_send_message)
+        self.chat_view.cancel_requested.connect(self.handle_cancel)
         self._is_first_prompt: bool = True
 
     def start(self) -> None:
@@ -72,6 +73,13 @@ class ACPController(QtCore.QObject):
             formatted_text = text
 
         self.client_thread.send_prompt(formatted_text)
+
+    @QtCore.Slot()
+    def handle_cancel(self) -> None:
+        """Cancel the currently processing agent prompt."""
+        self.client_thread.cancel_prompt()
+        self.chat_view.set_ready()
+        self.status_changed.emit("Connected", "#34a853")
 
     def _on_connected(self) -> None:
         """Handle agent connection established."""

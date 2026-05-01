@@ -201,6 +201,16 @@ class ACPClientThread(QtCore.QThread):
         if self.loop and self.loop.is_running():
             asyncio.run_coroutine_threadsafe(self._async_send_prompt(text), self.loop)
 
+    def cancel_prompt(self) -> None:
+        """Cancel the currently processing agent prompt."""
+        if self.loop and self.loop.is_running():
+            asyncio.run_coroutine_threadsafe(self._async_cancel_prompt(), self.loop)
+
+    async def _async_cancel_prompt(self) -> None:
+        """Asynchronously cancel the current agent prompt."""
+        if self.conn and self.session:
+            await self.conn.cancel(self.session.session_id)
+
     async def _async_send_prompt(self, text: str) -> None:
         """Asynchronously send a prompt to the agent session."""
         assert self._prompt_lock is not None

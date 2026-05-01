@@ -8,6 +8,7 @@ class ACPChatView(QtWidgets.QWidget):
     """The chat interface widget with history and input."""
 
     send_message: QtCore.SignalInstance = QtCore.Signal(str)
+    cancel_requested: QtCore.SignalInstance = QtCore.Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -34,8 +35,14 @@ class ACPChatView(QtWidgets.QWidget):
         self.send_button.setAccessibleName("Send Message")
         self.send_button.clicked.connect(self._on_send)
 
+        self.stop_button: QtWidgets.QPushButton = QtWidgets.QPushButton("Stop")
+        self.stop_button.setAccessibleName("Stop Agent")
+        self.stop_button.setVisible(False)
+        self.stop_button.clicked.connect(self.cancel_requested.emit)
+
         self.input_layout.addWidget(self.input_field)
         self.input_layout.addWidget(self.send_button)
+        self.input_layout.addWidget(self.stop_button)
         self.layout.addLayout(self.input_layout)
 
         self.loading_label: QtWidgets.QLabel = QtWidgets.QLabel("")
@@ -73,16 +80,18 @@ class ACPChatView(QtWidgets.QWidget):
 
     @QtCore.Slot()
     def set_processing(self) -> None:
-        """Disable input controls while the agent is processing."""
+        """Disable send controls and show stop button while the agent is processing."""
         self.input_field.setEnabled(False)
-        self.send_button.setEnabled(False)
+        self.send_button.setVisible(False)
+        self.stop_button.setVisible(True)
         self.loading_label.setText("Agent is thinking...")
 
     @QtCore.Slot()
     def set_ready(self) -> None:
-        """Re-enable input controls once processing finishes."""
+        """Re-enable send controls and hide stop button once processing finishes."""
         self.input_field.setEnabled(True)
-        self.send_button.setEnabled(True)
+        self.send_button.setVisible(True)
+        self.stop_button.setVisible(False)
         self.input_field.setFocus()
         self.loading_label.setText("")
 

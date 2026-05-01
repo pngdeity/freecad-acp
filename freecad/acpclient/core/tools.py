@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import math
 import traceback
 from collections.abc import Callable
 from typing import Any
@@ -75,6 +76,76 @@ def read_document_state(
         return {"error": str(e)}
 
 
+SAFE_BUILTINS: dict[str, Any] = {
+    "True": True,
+    "False": False,
+    "None": None,
+    "abs": abs,
+    "all": all,
+    "any": any,
+    "bin": bin,
+    "bool": bool,
+    "bytes": bytes,
+    "bytearray": bytearray,
+    "chr": chr,
+    "complex": complex,
+    "dict": dict,
+    "divmod": divmod,
+    "enumerate": enumerate,
+    "filter": filter,
+    "float": float,
+    "format": format,
+    "frozenset": frozenset,
+    "hash": hash,
+    "hex": hex,
+    "int": int,
+    "isinstance": isinstance,
+    "issubclass": issubclass,
+    "iter": iter,
+    "len": len,
+    "list": list,
+    "map": map,
+    "math": math,
+    "max": max,
+    "min": min,
+    "next": next,
+    "oct": oct,
+    "ord": ord,
+    "pow": pow,
+    "print": print,
+    "range": range,
+    "repr": repr,
+    "reversed": reversed,
+    "round": round,
+    "set": set,
+    "slice": slice,
+    "sorted": sorted,
+    "str": str,
+    "sum": sum,
+    "tuple": tuple,
+    "type": type,
+    "zip": zip,
+    # Exception types (safe: cannot be used to escape since __import__ is blocked)
+    "BaseException": BaseException,
+    "Exception": Exception,
+    "ArithmeticError": ArithmeticError,
+    "AssertionError": AssertionError,
+    "AttributeError": AttributeError,
+    "KeyError": KeyError,
+    "IndexError": IndexError,
+    "LookupError": LookupError,
+    "NameError": NameError,
+    "OSError": OSError,
+    "OverflowError": OverflowError,
+    "RuntimeError": RuntimeError,
+    "StopIteration": StopIteration,
+    "SyntaxError": SyntaxError,
+    "TypeError": TypeError,
+    "ValueError": ValueError,
+    "ZeroDivisionError": ZeroDivisionError,
+}
+
+
 def execute_python_script_sync(
     script: str,
     app: Any = FreeCAD,
@@ -93,7 +164,13 @@ def execute_python_script_sync(
     capture_stderr = io.StringIO()
 
     try:
-        env: dict[str, Any] = {"FreeCAD": app, "FreeCADGui": gui, "App": app, "Gui": gui}
+        env: dict[str, Any] = {
+            "FreeCAD": app,
+            "FreeCADGui": gui,
+            "App": app,
+            "Gui": gui,
+            "__builtins__": SAFE_BUILTINS,
+        }
         with contextlib.redirect_stdout(capture_stdout), contextlib.redirect_stderr(capture_stderr):
             exec(script, env)
         output = capture_stdout.getvalue()

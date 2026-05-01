@@ -44,9 +44,8 @@ All items below are unimplemented as of 2026-04-30. Each includes the current st
 - **Scope:** Audit and wrap all user-visible strings (estimated 30-40 strings). Create a translation template. No runtime translation loading until translators contribute.
 
 ### 3. Session persistence
-- **Goal:** Remember last agent command and connection history in FreeCAD params.
-- **Current state:** Zero calls to `FreeCAD.ParamGet`, `App.ParamGet`, or any parameter API anywhere in the codebase. The connect dialog at `commands.py:29` uses a hardcoded default `"gemini --experimental-acp"` with no recall.
-- **Scope:** Integrate with `FreeCAD.ParamGet("User parameter:BaseApp/ACP")`. Store last-used command path and a list of recent connections. Load on startup.
+- [x] **Goal:** Remember last agent command and connection history in FreeCAD params.
+- **Status:** Implemented 2026-04-30. `commands.py:7-54` — `_load_last_command()` reads from `FreeCAD.ParamGet("User parameter:BaseApp/ACP").GetString("last_command")`. `_save_last_command()` persists the command and maintains a deduplicated recent-connections list (up to 5 entries) as `recent_0` through `recent_4`.
 
 ### 4. Architectural refactor (per `docs/refactor.md`)
 - **Goal:** Four-phase remediation of Separation of Concerns, security, and stability issues.

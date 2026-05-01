@@ -75,14 +75,8 @@ All items below are unimplemented as of 2026-04-30. Each includes the current st
 - **Scope:** Change `chat_view.py` to maintain a "streaming" message block. On first chunk, create a placeholder. On subsequent chunks, mutate the last block's content in-place. On `processing_finished`, finalize the block.
 
 ### 8. Dark/light theme adaptation
-- **Goal:** Adapt chat bubble colors to FreeCAD stylesheet.
-- **Current state:** All colors are hardcoded hex values that will not adapt to dark mode:
-  - `dock_widget.py:27` — `"color: #999; ..."` (disconnected label)
-  - `controller.py:62,80,85,91,96` — status colors (`"#1a73e8"`, `"#34a853"`, `"#ea4335"`, `"#999"`)
-  - `chat_view.py:42` — italic emphasis color `"#1a73e8"`
-  - `chat_view.py:70` — user bubble `"#2a7ae2"`, agent bubble `"#555555"`
-  - `chat_view.py:24` — hardcoded welcome HTML
-- **Scope:** Query `QApplication.style()` / `QApplication.palette()` at widget construction. Derive bubble colors from palette roles (`Window`, `WindowText`, `Highlight`). Reapply on `QEvent.PaletteChange`.
+- [x] **Goal:** Adapt chat bubble colors to FreeCAD stylesheet.
+- **Status:** Implemented 2026-04-30. `chat_view.py` — `_palette_colors()` derives bubble and accent colors from `QPalette.Highlight`, `WindowText`, and `PlaceholderText`. `_apply_theme()` reapplies on `PaletteChange` events. `dock_widget.py` derives border color from `QPalette.Mid`. `controller.py` replaces hardcoded disconnected gray with `_dim_color()` using `QPalette.PlaceholderText`. Semantic colors (connected=green, error=red, processing=blue) remain hardcoded as they are legible in both themes.
 
 ---
 

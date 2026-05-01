@@ -82,9 +82,7 @@ class FreeCADACPClient(Client):
             self.thread_bridge.request_permission_signal, title, description
         )
         if allowed:
-            return RequestPermissionResponse(
-                outcome=AllowedOutcome(option_id=options[0].option_id, outcome="selected")
-            )
+            return RequestPermissionResponse(outcome=AllowedOutcome(option_id=options[0].option_id, outcome="selected"))
         return RequestPermissionResponse(outcome=DeniedOutcome(outcome="denied"))
 
     async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
@@ -92,9 +90,7 @@ class FreeCADACPClient(Client):
         import json
 
         if method == "read_document_state":
-            doc_result: str = await self.thread_bridge.run_on_main_thread(
-                self.thread_bridge.request_read_document
-            )
+            doc_result: str = await self.thread_bridge.run_on_main_thread(self.thread_bridge.request_read_document)
             return {"result": doc_result}
 
         if method == "execute_python_script":

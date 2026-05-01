@@ -34,5 +34,6 @@ class ACPClientWorkbench(FreeCADGui.Workbench):
         # This is mandatory for workbenches
         return "Gui::PythonWorkbench"
 
+
 # Register the workbench
 FreeCADGui.addWorkbench(ACPClientWorkbench())

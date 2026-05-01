@@ -1,7 +1,7 @@
 # FreeCAD ACP Client
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FreeCAD](https://img.shields.io/badge/FreeCAD-0.21+-brightgreen.svg)](https://www.freecad.org)
 
 <p align="center">
@@ -21,7 +21,7 @@ Unlike simple "chat-to-script" plugins, this client provides a robust, multi-thr
 - **Agentic Toolset**: Agents have access to specialized tools including:
   - **Document Inspection**: Reading objects, properties, and tree structures.
   - **Geometry Creation**: Creating primitives (cubes, cylinders, spheres).
-  - **Python Automation**: Executing safe, synchronized Python scripts within the FreeCAD context.
+   - **Python Automation**: Executing sandboxed Python scripts within the FreeCAD context with user confirmation.
   - **Object Manipulation**: Deleting, selecting, and exporting objects.
 - **Permission System**: Explicit user confirmation for sensitive actions requested by the agent.
 
@@ -62,28 +62,26 @@ Unlike simple "chat-to-script" plugins, this client provides a robust, multi-thr
 We recommend using a virtual environment for development:
 ```bash
 python -m venv .venv
-source .venv/bin/bin/activate  # Linux
-pip install -r requirements.txt -r dev-requirements.txt
+source .venv/bin/activate  # Linux
+pip install -r requirements.txt
 ```
 
 ### Code Quality
-We use `ruff` for linting and formatting, and `mypy` for type checking.
+We use `ruff` for linting and formatting, and `mypy` for type checking. These are orchestrated via a `Makefile` for portability across CI providers.
+
 ```bash
-# Linting
-ruff check .
+# Run all quality checks (lint, typecheck, format-check, test)
+make all
 
-# Formatting
-ruff format .
-
-# Type checking
-mypy freecad/
+# Individual targets
+make lint          # ruff check .
+make format        # ruff format .
+make format-check  # ruff format --check .
+make typecheck     # mypy freecad/
+make test          # pytest tests/ -v
 ```
 
-### Running Tests
-The project uses `pytest` for unit and integration testing.
-```bash
-pytest tests/ -v
-```
+See [`docs/ci.md`](docs/ci.md) for the CI pipeline architecture.
 
 ## Architecture
 
@@ -97,7 +95,7 @@ For more details, see [docs/architecture.md](docs/architecture.md).
 
 ## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](docs/contributing.md) for guidelines.
+Contributions are welcome! Please see [docs/contributing.md](docs/contributing.md) for guidelines.
 
 ## License
 

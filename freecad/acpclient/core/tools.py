@@ -159,11 +159,15 @@ def create_primitive(
         if "placement" in params:
             pl = params["placement"]
             pos = app.Vector(
-                pl.get("x", 0), pl.get("y", 0), pl.get("z", 0),
+                pl.get("x", 0),
+                pl.get("y", 0),
+                pl.get("z", 0),
             )
             rot = app.Rotation(
                 app.Vector(
-                    pl.get("ax", 0), pl.get("ay", 0), pl.get("az", 1),
+                    pl.get("ax", 0),
+                    pl.get("ay", 0),
+                    pl.get("az", 1),
                 ),
                 pl.get("angle", 0),
             )
@@ -335,8 +339,7 @@ TOOLS_REGISTRY: dict[str, dict[str, Any]] = {
     },
     "create_primitive": {
         "description": (
-            "Create a primitive 3D shape in the active document. "
-            "Supported types: Box, Cylinder, Sphere, Cone, Torus."
+            "Create a primitive 3D shape in the active document. Supported types: Box, Cylinder, Sphere, Cone, Torus."
         ),
         "parameters": {
             "type": "object",

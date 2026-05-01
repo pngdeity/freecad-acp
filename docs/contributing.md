@@ -13,7 +13,11 @@
    python -m venv .venv
    source .venv/bin/activate  # Linux/macOS
    pip install -r requirements.txt
-   pip install pytest
+   ```
+
+3. Install development tools:
+   ```bash
+   pip install pytest ruff mypy
    ```
 
 3. (Optional) For local development inside FreeCAD, copy or symlink the `freecad/` directory into your FreeCAD `Mod` directory:
@@ -52,4 +56,6 @@ ruff format .
 
 ## CI
 
-GitHub Actions runs lint, typecheck, and tests on every push and pull request.
+Quality checks are defined as Makefile targets, making them portable across CI providers. Run `make all` to execute the full pipeline locally.
+
+See [`docs/ci.md`](ci.md) for the CI architecture.

@@ -24,9 +24,7 @@ class ACPDockWidget(QtWidgets.QDockWidget):
         self.layout: QtWidgets.QVBoxLayout = QtWidgets.QVBoxLayout(self.main_widget)
 
         self.status_label: QtWidgets.QLabel = QtWidgets.QLabel("Disconnected")
-        self.status_label.setStyleSheet(
-            "color: #999; font-weight: bold; padding: 4px; border-bottom: 1px solid #ccc;"
-        )
+        self.status_label.setStyleSheet("color: #999; font-weight: bold; padding: 4px; border-bottom: 1px solid #ccc;")
         self.status_label.setAccessibleName("Connection Status")
         self.layout.addWidget(self.status_label)
 

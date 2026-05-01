@@ -63,8 +63,7 @@ class ACPController(QtCore.QObject):
 
         if self._is_first_prompt:
             system_instruction = (
-                "You are an ACP agent connected to FreeCAD. "
-                "You can modify the CAD environment using ext_methods.\n"
+                "You are an ACP agent connected to FreeCAD. You can modify the CAD environment using ext_methods.\n"
             )
             system_instruction += tools.get_tools_schema_markdown()
             formatted_text = system_instruction + "\n\nUser Request: " + text

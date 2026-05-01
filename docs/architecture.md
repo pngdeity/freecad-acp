@@ -5,6 +5,7 @@
 ```
 freecad/acpclient/
 ├── __init__.py
+├── py.typed
 ├── init_gui.py          # Workbench registration (FreeCADGui.addWorkbench)
 ├── commands.py          # Menu/toolbar command classes (Connect, Disconnect, ToggleUI)
 ├── core/

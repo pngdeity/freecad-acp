@@ -44,7 +44,7 @@ disallow_incomplete_defs = false
 check_untyped_defs = false
 
 [[tool.mypy.overrides]]
-module = ["FreeCAD", "FreeCADGui", "Part", "Mesh"]
+module = ["FreeCAD", "FreeCADGui", "Part", "Mesh", "markdown"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

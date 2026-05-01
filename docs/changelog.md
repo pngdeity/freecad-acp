@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.0] — 2025-01-XX
+## [1.0.0] — 2026-04-30
 
 Initial release of the FreeCAD ACP Client Workbench.
 

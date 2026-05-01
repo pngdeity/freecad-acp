@@ -55,7 +55,7 @@ class _MockQThread(_MockQObject):
 # --- PySide6 mocks (needed for UI/controller modules) ---
 _QtCore = MagicMock()
 _QtCore.Signal = _MockSignal
-_QtCore.Slot = lambda *args, **kwargs: (lambda f: f)
+_QtCore.Slot = lambda *args, **kwargs: lambda f: f
 _QtCore.QObject = _MockQObject
 _QtCore.QThread = _MockQThread
 
@@ -89,10 +89,14 @@ _acp = MagicMock()
 _acp.PROTOCOL_VERSION = 1
 _acp.spawn_agent_process = MagicMock()
 _acp.text_block = MagicMock(return_value={"type": "text", "text": ""})
-_acp.RequestError = type("RequestError", (Exception,), {
-    "invalid_params": classmethod(lambda cls, msg: Exception(msg)),
-    "method_not_found": classmethod(lambda cls, msg: Exception(msg)),
-})
+_acp.RequestError = type(
+    "RequestError",
+    (Exception,),
+    {
+        "invalid_params": classmethod(lambda cls, msg: Exception(msg)),
+        "method_not_found": classmethod(lambda cls, msg: Exception(msg)),
+    },
+)
 _acp.interfaces = MagicMock()
 _acp.interfaces.Client = type("Client", (), {})
 _acp.schema = MagicMock()

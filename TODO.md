@@ -22,6 +22,7 @@
 - [ ] **i18n support** — Wrap all user-facing strings with QT_TRANSLATE_NOOP
 - [ ] **Remote agent support** — HTTP/WebSocket transport in addition to stdio
 - [ ] **Session persistence** — Remember last agent command and connection history in FreeCAD params
+- [ ] **Architectural refactor per `docs/refactor.md`** — Unified tool registry, session manager extraction, thread bridge hardening, and sandbox hardening (see review notes in §5)
 - [ ] **Agent mode/model switching** — Expose set_session_mode / set_session_model in UI
 - [ ] **Cancel button** — Wire stop button to conn.cancel(session_id)
 - [ ] **Streaming token display** — Render session_update text chunks incrementally

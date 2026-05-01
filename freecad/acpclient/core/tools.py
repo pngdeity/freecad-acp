@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import io
 import json
@@ -9,24 +11,32 @@ import FreeCAD
 import FreeCADGui
 
 
-def read_document_state() -> dict[str, Any]:
-    """Returns a dictionary representing the current document state."""
+def read_document_state(
+    app: Any = FreeCAD,
+    gui: Any = FreeCADGui,
+) -> dict[str, Any]:
+    """Return a dictionary representing the state of the active FreeCAD document.
+
+    Args:
+        app: FreeCAD App module (injectable for testing).
+        gui: FreeCAD Gui module (injectable for testing).
+    """
     try:
-        doc = FreeCAD.ActiveDocument
+        doc = app.ActiveDocument
         if not doc:
             return {"error": "No active document"}
 
-        sel = FreeCADGui.Selection.getSelection()
+        sel = gui.Selection.getSelection()
         sel_names = [obj.Name for obj in sel]
 
-        state = {
+        state: dict[str, Any] = {
             "name": doc.Name,
             "label": doc.Label,
             "objects": [],
         }
 
         for obj in doc.Objects:
-            obj_data = {
+            obj_data: dict[str, Any] = {
                 "name": obj.Name,
                 "label": obj.Label,
                 "type": obj.TypeId,
@@ -34,23 +44,23 @@ def read_document_state() -> dict[str, Any]:
             }
 
             if hasattr(obj, "Visibility"):
-                obj_data["visibility"] = obj.Visibility
+                obj_data["visibility"] = bool(obj.Visibility)
 
             if hasattr(obj, "Placement") and obj.Placement:
                 pl = obj.Placement
                 obj_data["placement"] = {
-                    "base": {"x": pl.Base.x, "y": pl.Base.y, "z": pl.Base.z},
+                    "base": {"x": float(pl.Base.x), "y": float(pl.Base.y), "z": float(pl.Base.z)},
                     "rotation": {
-                        "angle": pl.Rotation.Angle,
+                        "angle": float(pl.Rotation.Angle),
                         "axis": {
-                            "x": pl.Rotation.Axis.x,
-                            "y": pl.Rotation.Axis.y,
-                            "z": pl.Rotation.Axis.z,
+                            "x": float(pl.Rotation.Axis.x),
+                            "y": float(pl.Rotation.Axis.y),
+                            "z": float(pl.Rotation.Axis.z),
                         },
                     },
                 }
 
-            props = {}
+            props: dict[str, Any] = {}
             if hasattr(obj, "PropertiesList"):
                 for prop_name in obj.PropertiesList:
                     if prop_name in ("Length", "Width", "Height", "Radius", "Angle"):
@@ -65,16 +75,25 @@ def read_document_state() -> dict[str, Any]:
         return {"error": str(e)}
 
 
-def execute_python_script_sync(script: str) -> str:
-    """Executes a Python script in the FreeCAD context synchronously and captures output.
+def execute_python_script_sync(
+    script: str,
+    app: Any = FreeCAD,
+    gui: Any = FreeCADGui,
+) -> str:
+    """Execute a Python script in the FreeCAD context and capture output.
 
     Must be called from the main thread.
+
+    Args:
+        script: Python source code to execute.
+        app: FreeCAD App module (injectable for testing).
+        gui: FreeCAD Gui module (injectable for testing).
     """
     capture_stdout = io.StringIO()
     capture_stderr = io.StringIO()
 
     try:
-        env = {"FreeCAD": FreeCAD, "FreeCADGui": FreeCADGui, "App": FreeCAD, "Gui": FreeCADGui}
+        env: dict[str, Any] = {"FreeCAD": app, "FreeCADGui": gui, "App": app, "Gui": gui}
         with contextlib.redirect_stdout(capture_stdout), contextlib.redirect_stderr(capture_stderr):
             exec(script, env)
         output = capture_stdout.getvalue()
@@ -86,9 +105,19 @@ def execute_python_script_sync(script: str) -> str:
     return output
 
 
-def create_primitive(obj_type: str, params: dict[str, Any]) -> dict[str, Any]:
-    """Create a FreeCAD primitive shape in the active document."""
-    doc = FreeCAD.ActiveDocument
+def create_primitive(
+    obj_type: str,
+    params: dict[str, Any],
+    app: Any = FreeCAD,
+) -> dict[str, Any]:
+    """Create a FreeCAD primitive shape in the active document.
+
+    Args:
+        obj_type: Primitive type - Box, Cylinder, Sphere, Cone, or Torus.
+        params: Shape parameters and optional placement.
+        app: FreeCAD App module (injectable for testing).
+    """
+    doc = app.ActiveDocument
     if not doc:
         return {"error": "No active document"}
 
@@ -129,28 +158,37 @@ def create_primitive(obj_type: str, params: dict[str, Any]) -> dict[str, Any]:
 
         if "placement" in params:
             pl = params["placement"]
-            pos = FreeCAD.Vector(
-                pl.get("x", 0), pl.get("y", 0), pl.get("z", 0)
+            pos = app.Vector(
+                pl.get("x", 0), pl.get("y", 0), pl.get("z", 0),
             )
-            rot = FreeCAD.Rotation(
-                FreeCAD.Vector(
-                    pl.get("ax", 0), pl.get("ay", 0), pl.get("az", 1)
+            rot = app.Rotation(
+                app.Vector(
+                    pl.get("ax", 0), pl.get("ay", 0), pl.get("az", 1),
                 ),
                 pl.get("angle", 0),
             )
-            obj.Placement = FreeCAD.Placement(pos, rot)
+            obj.Placement = app.Placement(pos, rot)
 
         doc.recompute()
         doc.commitTransaction()
         return {"result": f"Created {obj_type} '{name}'. Call recompute if further changes are needed."}
     except Exception as e:
-        doc.abortTransaction()
+        with contextlib.suppress(Exception):
+            doc.abortTransaction()
         return {"error": str(e)}
 
 
-def delete_object(name: str) -> dict[str, Any]:
-    """Remove an object from the active document."""
-    doc = FreeCAD.ActiveDocument
+def delete_object(
+    name: str,
+    app: Any = FreeCAD,
+) -> dict[str, Any]:
+    """Remove an object from the active document by name.
+
+    Args:
+        name: Name of the object to delete.
+        app: FreeCAD App module (injectable for testing).
+    """
+    doc = app.ActiveDocument
     if not doc:
         return {"error": "No active document"}
 
@@ -169,16 +207,22 @@ def delete_object(name: str) -> dict[str, Any]:
         return {"error": str(e)}
 
 
-def get_selection() -> dict[str, Any]:
-    """Return information about the current user selection."""
+def get_selection(
+    gui: Any = FreeCADGui,
+) -> dict[str, Any]:
+    """Return information about the currently selected objects.
+
+    Args:
+        gui: FreeCAD Gui module (injectable for testing).
+    """
     try:
-        sel = FreeCADGui.Selection.getSelection()
+        sel = gui.Selection.getSelection()
         if not sel:
             return {"result": "No objects selected.", "count": 0, "objects": []}
 
-        objects = []
+        objects: list[dict[str, Any]] = []
         for obj in sel:
-            obj_info = {
+            obj_info: dict[str, Any] = {
                 "name": obj.Name,
                 "label": obj.Label,
                 "type": obj.TypeId,
@@ -186,7 +230,7 @@ def get_selection() -> dict[str, Any]:
             if hasattr(obj, "Placement") and obj.Placement:
                 pl = obj.Placement
                 obj_info["placement"] = {
-                    "base": {"x": pl.Base.x, "y": pl.Base.y, "z": pl.Base.z},
+                    "base": {"x": float(pl.Base.x), "y": float(pl.Base.y), "z": float(pl.Base.z)},
                 }
             objects.append(obj_info)
 
@@ -195,9 +239,19 @@ def get_selection() -> dict[str, Any]:
         return {"error": str(e)}
 
 
-def export_file(filepath: str, fmt: str = "") -> dict[str, Any]:
-    """Export the active document to a file."""
-    doc = FreeCAD.ActiveDocument
+def export_file(
+    filepath: str,
+    fmt: str = "",
+    app: Any = FreeCAD,
+) -> dict[str, Any]:
+    """Export the active document to a file (STL or STEP format).
+
+    Args:
+        filepath: Full path for the output file.
+        fmt: Format ('stl' or 'step').
+        app: FreeCAD App module (injectable for testing).
+    """
+    doc = app.ActiveDocument
     if not doc:
         return {"error": "No active document"}
 
@@ -206,15 +260,12 @@ def export_file(filepath: str, fmt: str = "") -> dict[str, Any]:
         import Part
 
         if fmt.lower() in ("stl", "stl ascii", ".stl"):
-            objs = []
-            for obj in doc.Objects:
-                if hasattr(obj, "Shape") and obj.Shape:
-                    objs.append(obj)
+            objs = [obj for obj in doc.Objects if hasattr(obj, "Shape") and obj.Shape]
             if not objs:
                 return {"error": "No shape objects to export"}
             Mesh.export(objs, filepath)
         elif fmt.lower() in ("step", "stp", ".step", ".stp"):
-            Part.export(doc.Objects, filepath)
+            Part.export(list(doc.Objects), filepath)
         else:
             return {"error": f"Unsupported format: {fmt}. Use 'stl' or 'step'."}
 
@@ -234,12 +285,28 @@ TOOL_DISPATCH: dict[str, Callable[..., dict[str, Any]]] = {
 }
 
 
-def run_tool(method: str, params: dict[str, Any]) -> dict[str, Any]:
-    """Route a tool method name and params to the correct handler."""
+def run_tool(method: str, params: dict[str, Any], app: Any = None, gui: Any = None) -> dict[str, Any]:
+    """Route a tool method name and params to the correct handler.
+
+    Args:
+        method: Tool method name.
+        params: Parameters dict to pass to the tool function.
+        app: Optional FreeCAD App override (for testing).
+        gui: Optional FreeCAD Gui override (for testing).
+
+    Returns:
+        Result dict from the tool function.
+    """
     func = TOOL_DISPATCH.get(method)
     if func is None:
         return {"error": f"Unknown tool: {method}"}
-    return func(**params)
+
+    kwargs: dict[str, Any] = {}
+    if app is not None:
+        kwargs["app"] = app
+    if gui is not None:
+        kwargs["gui"] = gui
+    return func(**params, **kwargs)
 
 
 # --- Tool registry for agent context injection ---
@@ -319,7 +386,7 @@ TOOLS_REGISTRY: dict[str, dict[str, Any]] = {
 
 
 def get_tools_schema_markdown() -> str:
-    """Returns the tools registry as a Markdown string to inject into the agent context."""
+    """Return the tools registry as a Markdown string for agent context injection."""
     md = "## Available FreeCAD Tools\\n\\n"
     for name, tool in TOOLS_REGISTRY.items():
         md += f"### {name}\\n"

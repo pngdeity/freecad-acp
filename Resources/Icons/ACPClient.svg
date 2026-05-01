@@ -1,6 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <rect width="64" height="64" rx="12" fill="#1a73e8"/>
-  <path d="M20 22h24v4H20zM20 30h18v4H20zM20 38h20v4H20z" fill="#fff"/>
-  <circle cx="48" cy="40" r="8" fill="#34a853"/>
-  <path d="M46 38l2 3 4-5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Gradient Definitions -->
+  <defs>
+    <linearGradient id="hexGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#316eb5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e4a7a;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <stop offset="0%" style="stop-color:#000;stop-opacity:0.3" />
+    </filter>
+  </defs>
+
+  <!-- Hexagonal Boundary (Agent/Node theme) -->
+  <path d="M64 4 L118 34 L118 94 L64 124 L10 94 L10 34 Z" fill="url(#hexGradient)" />
+  
+  <!-- 3D Isometric Cube Outline (CAD theme) -->
+  <g transform="translate(64, 64)" stroke="#ffffff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Center Axes -->
+    <path d="M0 0 V -35" /> <!-- Z Axis -->
+    <path d="M0 0 L 30 17" /> <!-- X Axis -->
+    <path d="M0 0 L -30 17" /> <!-- Y Axis -->
+    
+    <!-- Outer Box -->
+    <path d="M 0 -35 L 30 -18 L 30 17 L 0 35 L -30 17 L -30 -18 Z" />
+    <path d="M 30 -18 L 0 0 L -30 -18" stroke-opacity="0.5" />
+  </g>
+
+  <!-- Connection Nodes (ACP theme) -->
+  <circle cx="64" cy="4" r="6" fill="#ffffff" />
+  <circle cx="118" cy="34" r="6" fill="#ffffff" />
+  <circle cx="118" cy="94" r="6" fill="#ffffff" />
+  <circle cx="64" cy="124" r="6" fill="#ffffff" />
+  <circle cx="10" cy="94" r="6" fill="#ffffff" />
+  <circle cx="10" cy="34" r="6" fill="#ffffff" />
+
+  <!-- Central "A" stylized as a CAD vertex -->
+  <path d="M50 85 L64 50 L78 85 M55 75 L73 75" stroke="#ffffff" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" />
 </svg>

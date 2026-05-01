@@ -1,3 +1,6 @@
+# Copyright (C) 2026 FreeCAD ACP Client Contributors
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """Unit tests for tool functions in freecad.acpclient.core.tools.
 
 Each test injects mock app/gui objects via optional parameters rather than

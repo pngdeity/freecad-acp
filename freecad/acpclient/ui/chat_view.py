@@ -1,3 +1,6 @@
+# Copyright (C) 2026 FreeCAD ACP Client Contributors
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 from __future__ import annotations
 
 import markdown
@@ -103,9 +106,7 @@ class ACPChatView(QtWidgets.QWidget):
         colors = _palette_colors()
         self._user_color = colors["user_bubble"]
         self._agent_color = colors["agent_bubble"]
-        self.loading_label.setStyleSheet(
-            f"color: {colors['accent']}; font-style: italic; padding: 2px;"
-        )
+        self.loading_label.setStyleSheet(f"color: {colors['accent']}; font-style: italic; padding: 2px;")
 
     def changeEvent(self, event: QtCore.QEvent) -> None:  # noqa: N802
         """Reapply theme-derived colors when the palette changes."""

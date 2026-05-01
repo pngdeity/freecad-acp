@@ -1,3 +1,6 @@
+# Copyright (C) 2026 FreeCAD ACP Client Contributors
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 """Test fixtures for FreeCAD ACP Client tests.
 
 Provides mock objects for FreeCAD modules that accept dependency injection.

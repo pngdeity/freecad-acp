@@ -1,7 +1,11 @@
+# Copyright (C) 2026 FreeCAD ACP Client Contributors
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 [project]
 name = "freecad-acpclient"
 version = "1.0.0"
 description = "FreeCAD ACP Client Workbench"
+license = {text = "LGPL-3.0-or-later"}
 requires-python = ">=3.10"
 dependencies = [
     "acp-sdk>=0.1.0",

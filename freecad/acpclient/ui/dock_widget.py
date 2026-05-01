@@ -1,3 +1,6 @@
+# Copyright (C) 2026 FreeCAD ACP Client Contributors
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 from __future__ import annotations
 
 from typing import Any
@@ -46,10 +49,7 @@ class ACPDockWidget(QtWidgets.QDockWidget):
     def _apply_status_style(self, status: str, color: str) -> None:
         """Apply the status label style with the current border color."""
         self.status_label.setText(status)
-        style = (
-            f"color: {color}; font-weight: bold; padding: 4px; "
-            f"border-bottom: 1px solid {self._border_color};"
-        )
+        style = f"color: {color}; font-weight: bold; padding: 4px; border-bottom: 1px solid {self._border_color};"
         self.status_label.setStyleSheet(style)
 
     @QtCore.Slot(str, str)

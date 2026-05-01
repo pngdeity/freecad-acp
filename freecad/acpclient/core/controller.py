@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from freecad.acpclient.core import tools
 from freecad.acpclient.core.client import ACPClientThread
@@ -17,6 +17,18 @@ class ACPController(QtCore.QObject):
     """
 
     status_changed: QtCore.SignalInstance = QtCore.Signal(str, str)
+
+    # Semantic status colors that remain legible in both light and dark themes.
+    _COLOR_PROCESSING: str = "#1a73e8"
+    _COLOR_CONNECTED: str = "#34a853"
+    _COLOR_ERROR: str = "#ea4335"
+
+    @staticmethod
+    def _dim_color() -> str:
+        """Return a theme-adaptive dim/gray color for the disconnected state."""
+        palette = QtWidgets.QApplication.instance().palette()
+        dim = palette.color(QtGui.QPalette.PlaceholderText)
+        return dim.name() if dim.isValid() and dim.name() else "#999"
 
     def __init__(self, chat_view: ACPChatView, parent: QtCore.QObject | None = None) -> None:
         super().__init__(parent)
@@ -60,7 +72,7 @@ class ACPController(QtCore.QObject):
     def handle_send_message(self, text: str) -> None:
         """Handle a message sent from the chat view and forward it to the agent."""
         self.chat_view.set_processing()
-        self.status_changed.emit("Agent is processing...", "#1a73e8")
+        self.status_changed.emit("Agent is processing...", self._COLOR_PROCESSING)
 
         if self._is_first_prompt:
             system_instruction = (
@@ -79,29 +91,29 @@ class ACPController(QtCore.QObject):
         """Cancel the currently processing agent prompt."""
         self.client_thread.cancel_prompt()
         self.chat_view.set_ready()
-        self.status_changed.emit("Connected", "#34a853")
+        self.status_changed.emit("Connected", self._COLOR_CONNECTED)
 
     def _on_connected(self) -> None:
         """Handle agent connection established."""
         self.chat_view.append_message("System", "Connected to Agent.")
         self.chat_view.set_ready()
-        self.status_changed.emit("Connected", "#34a853")
+        self.status_changed.emit("Connected", self._COLOR_CONNECTED)
 
     def _on_disconnected(self) -> None:
         """Handle agent disconnection."""
         self.chat_view.append_message("System", "Disconnected from Agent.")
-        self.status_changed.emit("Disconnected", "#999")
+        self.status_changed.emit("Disconnected", self._dim_color())
 
     def _on_error_occurred(self, msg: str) -> None:
         """Handle an error from the agent or background thread."""
         self.chat_view.append_message("System", f"Error: {msg}")
         self.chat_view.set_ready()
-        self.status_changed.emit("Error", "#ea4335")
+        self.status_changed.emit("Error", self._COLOR_ERROR)
 
     def _on_processing_finished(self) -> None:
         """Handle completion of agent processing."""
         self.chat_view.set_ready()
-        self.status_changed.emit("Connected", "#34a853")
+        self.status_changed.emit("Connected", self._COLOR_CONNECTED)
 
     @QtCore.Slot(str, str)
     def handle_execute_script(self, req_id: str, script: str) -> None:

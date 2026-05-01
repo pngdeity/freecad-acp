@@ -1,7 +1,51 @@
 from __future__ import annotations
 
 import markdown
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
+
+
+def _palette_colors():
+    """Derive a consistent palette of semantic colors from the active style.
+
+    Returns:
+        Dict with keys: accent, user_bubble, agent_bubble, dim_text.
+    """
+    palette = QtWidgets.QApplication.instance().palette()
+    accent = palette.color(QtGui.QPalette.Highlight)
+    text = palette.color(QtGui.QPalette.WindowText)
+    dim = palette.color(QtGui.QPalette.PlaceholderText)
+    bg = palette.color(QtGui.QPalette.Window)
+
+    # Choose contrast colors: accent for user, subdued for agent
+    user_color = accent.name() if accent.isValid() else "#2a7ae2"
+
+    # Agent bubble — use text color but dimmed
+    agent_color = _lerp_hex(text.name(), bg.name(), 0.6) if text.isValid() else "#555555"
+
+    # Dim text for status labels
+    dim_color = dim.name() if dim.isValid() and dim.name() != bg.name() else _lerp_hex(text.name(), bg.name(), 0.5)
+
+    return {
+        "accent": user_color,
+        "user_bubble": user_color,
+        "agent_bubble": agent_color,
+        "dim_text": dim_color,
+    }
+
+
+def _lerp_hex(hex_a: str, hex_b: str, t: float) -> str:
+    """Linearly interpolate between two hex RGB colors."""
+    try:
+        a = int(hex_a.lstrip("#"), 16)
+        b = int(hex_b.lstrip("#"), 16)
+        r_a, g_a, b_a = (a >> 16) & 0xFF, (a >> 8) & 0xFF, a & 0xFF
+        r_b, g_b, b_b = (b >> 16) & 0xFF, (b >> 8) & 0xFF, b & 0xFF
+        r = int(r_a + (r_b - r_a) * t)
+        g = int(g_a + (g_b - g_a) * t)
+        _b = int(b_a + (b_b - b_a) * t)
+        return f"#{r:02x}{g:02x}{_b:02x}"
+    except (ValueError, IndexError):
+        return hex_a
 
 
 class ACPChatView(QtWidgets.QWidget):
@@ -46,9 +90,25 @@ class ACPChatView(QtWidgets.QWidget):
         self.layout.addLayout(self.input_layout)
 
         self.loading_label: QtWidgets.QLabel = QtWidgets.QLabel("")
-        self.loading_label.setStyleSheet("color: #1a73e8; font-style: italic; padding: 2px;")
         self.loading_label.setAccessibleName("Agent Status")
         self.layout.addWidget(self.loading_label)
+
+        self._apply_theme()
+
+    def _apply_theme(self) -> None:
+        """Reapply styles derived from the current palette."""
+        colors = _palette_colors()
+        self._user_color = colors["user_bubble"]
+        self._agent_color = colors["agent_bubble"]
+        self.loading_label.setStyleSheet(
+            f"color: {colors['accent']}; font-style: italic; padding: 2px;"
+        )
+
+    def changeEvent(self, event: QtCore.QEvent) -> None:  # noqa: N802
+        """Reapply theme-derived colors when the palette changes."""
+        if event.type() == QtCore.QEvent.PaletteChange:
+            self._apply_theme()
+        super().changeEvent(event)
 
     def _on_send(self) -> None:
         """Emit the current input text as a message and clear the input field."""
@@ -74,7 +134,7 @@ class ACPChatView(QtWidgets.QWidget):
 
     def _format_message(self, sender: str, text: str) -> str:
         """Convert raw text/markdown to HTML for display in QTextBrowser."""
-        color: str = "#2a7ae2" if sender == "User" else "#555555"
+        color: str = self._user_color if sender == "User" else self._agent_color
         md_html: str = markdown.markdown(text, extensions=["fenced_code", "tables"])
         return f'<div><b style="color: {color};">{sender}:</b> {md_html}</div><br>'
 

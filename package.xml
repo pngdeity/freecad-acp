@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package format="1" xmlns="https://wiki.freecad.org/Package_Metadata">
+  <name>ACP Client</name>
+  <description>
+    A FreeCAD workbench enabling interaction with ACP-compatible AI agents
+    for CAD design, document analysis, and automation via the Agentic
+    Control Protocol.
+  </description>
+  <version>1.0.0</version>
+  <date>2026-04-30</date>
+  <maintainer>ACP Client Contributors</maintainer>
+  <license file="LICENSE">MIT</license>
+  <url type="repository" branch="main">https://github.com/pngdeity/freecad-acp</url>
+  <url type="bugtracker">https://github.com/pngdeity/freecad-acp/issues</url>
+  <url type="readme">https://github.com/pngdeity/freecad-acp/blob/main/README.md</url>
+  <icon>Resources/Icons/ACPClient.svg</icon>
+
+  <content>
+    <workbench>
+      <classname>ACPClientWorkbench</classname>
+      <subdirectory>freecad/acpclient/</subdirectory>
+      <icon>ACPClient.svg</icon>
+    </workbench>
+  </content>
+
+  <freecadmin>0.21</freecadmin>
+  <freecadmax>2.0</freecadmax>
+
+  <dependencies>
+    <dependency type="automatic" optional="false">acp-sdk</dependency>
+    <dependency type="automatic" optional="false">markdown</dependency>
+  </dependencies>
+</package>

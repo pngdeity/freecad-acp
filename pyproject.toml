@@ -1,0 +1,48 @@
+[project]
+name = "freecad-acpclient"
+version = "1.0.0"
+description = "FreeCAD ACP Client Workbench"
+requires-python = ">=3.10"
+dependencies = [
+    "acp-sdk>=0.1.0",
+    "markdown>=3.5",
+    "qasync>=0.27",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["freecad*", "Resources*"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["freecad"]
+
+[tool.ruff.lint.per-file-ignores]
+"freecad/acpclient/commands.py" = ["N802"]
+"freecad/acpclient/init_gui.py" = ["N802"]
+"freecad/acpclient/ui/dock_widget.py" = ["N802"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+explicit_package_bases = true
+exclude = ["build", "dist", ".venv"]
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

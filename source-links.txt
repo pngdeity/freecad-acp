@@ -1,0 +1,7 @@
+https://agentclientprotocol.com/libraries/community
+https://agentclientprotocol.github.io/python-sdk/
+https://docs.langchain.com/oss/python/deepagents/acp#clients
+https://freecad.github.io/DevelopersHandbook/
+https://wiki.freecad.org/Workbench_creation
+https://wiki.freecad.org/NewFeatureCheckList_C%2B%2B
+https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/acp/init.lua

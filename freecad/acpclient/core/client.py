@@ -145,6 +145,7 @@ class ACPClientThread(QtCore.QThread):
         self.ctx_mgr: Any = None
         self.proc: Any = None
         self.pending_requests: dict[str, asyncio.Future[Any]] = {}
+        self._prompt_lock: asyncio.Lock | None = None
 
     async def run_on_main_thread(self, signal: QtCore.SignalInstance, *args: Any) -> Any:
         """Schedule execution on the main thread and return the result via a future."""
@@ -155,42 +156,38 @@ class ACPClientThread(QtCore.QThread):
         signal.emit(req_id, *args)
         return await fut
 
-    @QtCore.Slot(str, str)
-    def resolve_execute_script(self, req_id: str, result: str) -> None:
-        """Resolve the pending future for a script execution request."""
+    def _resolve_request(self, req_id: str, result: Any) -> None:
+        """Set the result on a pending future identified by req_id."""
         if req_id in self.pending_requests:
             assert self.loop is not None
             fut: asyncio.Future[Any] = self.pending_requests.pop(req_id)
             self.loop.call_soon_threadsafe(fut.set_result, result)
+
+    @QtCore.Slot(str, str)
+    def resolve_execute_script(self, req_id: str, result: str) -> None:
+        """Resolve the pending future for a script execution request."""
+        self._resolve_request(req_id, result)
 
     @QtCore.Slot(str, str)
     def resolve_read_document(self, req_id: str, result: str) -> None:
         """Resolve the pending future for a document read request."""
-        if req_id in self.pending_requests:
-            assert self.loop is not None
-            fut: asyncio.Future[Any] = self.pending_requests.pop(req_id)
-            self.loop.call_soon_threadsafe(fut.set_result, result)
+        self._resolve_request(req_id, result)
 
     @QtCore.Slot(str, bool)
     def resolve_permission(self, req_id: str, allowed: bool) -> None:
         """Resolve the pending future for a permission request."""
-        if req_id in self.pending_requests:
-            assert self.loop is not None
-            fut: asyncio.Future[Any] = self.pending_requests.pop(req_id)
-            self.loop.call_soon_threadsafe(fut.set_result, allowed)
+        self._resolve_request(req_id, allowed)
 
     @QtCore.Slot(str, str)
     def resolve_run_tool(self, req_id: str, result_json: str) -> None:
         """Resolve the pending future for a tool execution request."""
-        if req_id in self.pending_requests:
-            assert self.loop is not None
-            fut: asyncio.Future[Any] = self.pending_requests.pop(req_id)
-            self.loop.call_soon_threadsafe(fut.set_result, result_json)
+        self._resolve_request(req_id, result_json)
 
     def run(self) -> None:
         """Start the asyncio event loop on this thread."""
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
+        self._prompt_lock = asyncio.Lock()
         try:
             self.loop.run_forever()
         finally:
@@ -210,20 +207,22 @@ class ACPClientThread(QtCore.QThread):
 
     async def _async_send_prompt(self, text: str) -> None:
         """Asynchronously send a prompt to the agent session."""
-        if not self.conn or not self.session:
-            self.error_occurred.emit("Not connected to any agent.")
-            self.processing_finished.emit()
-            return
-        self.processing_started.emit()
-        try:
-            await self.conn.prompt(
-                session_id=self.session.session_id,
-                prompt=[text_block(text)],
-            )
-        except Exception as e:
-            self.error_occurred.emit(f"Error: {e}")
-        finally:
-            self.processing_finished.emit()
+        assert self._prompt_lock is not None
+        async with self._prompt_lock:
+            if not self.conn or not self.session:
+                self.error_occurred.emit("Not connected to any agent.")
+                self.processing_finished.emit()
+                return
+            self.processing_started.emit()
+            try:
+                await self.conn.prompt(
+                    session_id=self.session.session_id,
+                    prompt=[text_block(text)],
+                )
+            except Exception as e:
+                self.error_occurred.emit(f"Error: {e}")
+            finally:
+                self.processing_finished.emit()
 
     def connect_to_agent(self, command_path: str) -> None:
         """Spawn a local agent process via stdio transport."""
@@ -264,13 +263,17 @@ class ACPClientThread(QtCore.QThread):
         try:
             if self.conn and self.session:
                 await self.conn.close_session(self.session.session_id)
-        except Exception:
-            pass
+        except Exception as e:
+            import sys
+
+            print(f"ACP: Warning during close_session: {e}", file=sys.stderr)
         try:
             if self.ctx_mgr:
                 await self.ctx_mgr.__aexit__(None, None, None)
-        except Exception:
-            pass
+        except Exception as e:
+            import sys
+
+            print(f"ACP: Warning during ctx_mgr teardown: {e}", file=sys.stderr)
         self.conn = None
         self.proc = None
         self.session = None

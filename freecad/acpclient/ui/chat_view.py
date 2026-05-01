@@ -103,6 +103,6 @@ class ACPChatView(QtWidgets.QWidget):
         )
         if not path:
             return
-        content: str = self.history.toPlainText() if path.endswith(".txt") else self.history.toHtml()
+        content: str = self.history.toHtml() if path.endswith(".html") else self.history.toPlainText()
         with open(path, "w") as f:
             f.write(content)

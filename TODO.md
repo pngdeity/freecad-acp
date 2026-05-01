@@ -67,9 +67,8 @@ All items below are unimplemented as of 2026-04-30. Each includes the current st
 - **Scope:** Requires upstream ACP SDK support. If available, add a dropdown or settings dialog in the UI to select mode/model before/during sessions.
 
 ### 6. Cancel button
-- **Goal:** Wire stop button to `conn.cancel(session_id)`.
-- **Current state:** No cancel/stop button exists in the UI — `chat_view.py:33` has only a "Send" button, no stop/cancel. No `conn.cancel()` call anywhere. The only "stop" mechanism is `_stop_event` / `loop.stop()` for full thread teardown (`client.py:196-201`).
-- **Scope:** Add a cancel button to `ACPChatView` (visible during processing). Wire it to `conn.cancel(session_id)` via the controller. Handle cancellation state (enable input, update status). Requires ACP SDK `conn.cancel()` support.
+- [x] **Goal:** Wire stop button to `conn.cancel(session_id)`.
+- **Status:** Implemented 2026-04-30. `ACPChatView` at `chat_view.py:38` has a Stop button visible during processing. Wired through `handle_cancel` in `controller.py:79` to `cancel_prompt` in `client.py:204`, which calls `conn.cancel(session_id)`.
 
 ### 7. Streaming token display
 - **Goal:** Render `session_update` text chunks incrementally (in-place mutation of last message).

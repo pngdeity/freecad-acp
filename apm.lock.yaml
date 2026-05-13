@@ -1,0 +1,23 @@
+lockfile_version: '1'
+generated_at: '2026-05-13T13:07:03.772887+00:00'
+apm_version: 0.13.0
+dependencies:
+- repo_url: _local/freecad-development
+  package_type: apm_package
+  deployed_files:
+  - .agents/skills/implement-acp-client
+  - .github/instructions/debugging.instructions.md
+  - .github/instructions/quality.instructions.md
+  - .github/instructions/toolchain.instructions.md
+  - .github/instructions/venv.instructions.md
+  deployed_file_hashes:
+    .github/instructions/debugging.instructions.md: sha256:6379be8fbc43669b736b24b6aa07a12050cc4ab8cb1a555d10319a0846b1782e
+    .github/instructions/quality.instructions.md: sha256:eabc50bf321b08179fceb81e5438df78fcf01fe4578ea3a072dc0c5d23bf2f95
+    .github/instructions/toolchain.instructions.md: sha256:d565a6ad3a69d210d74b7998ce4d8520d3b9f383ae20b3a6ebf2cb9d73273300
+    .github/instructions/venv.instructions.md: sha256:f7816295796ca0efe1e6d9030542ead79e45da9510ca39d04cb495acb2598907
+  source: local
+  local_path: /home/nathan/repos/pngdeity/apm-user-repository/packages/freecad-development
+local_deployed_files:
+- .github/instructions/freecad-acp.instructions.md
+local_deployed_file_hashes:
+  .github/instructions/freecad-acp.instructions.md: sha256:18871a0ed76f31a41df153046a9b4e2196fe4385fb77042e7a7a3217b4202e45

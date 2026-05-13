@@ -17,3 +17,20 @@ build/
 *.log
 refactor.md
 .addlicense
+
+
+# APM dependencies
+apm_modules/
+
+# APM generated files
+.agents/
+.opencode/
+.github/instructions/
+.github/prompts/
+.github/agents/
+.github/hooks/
+.github/copilot-instructions.md
+AGENTS.md
+GEMINI.md
+implement-acp-client.skill
+packages/
